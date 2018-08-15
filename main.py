@@ -248,7 +248,7 @@ def main(run_sta=True, run_stc=True, main_dict_exists = True):
     else:
         main_dict = pickle.load(open("/media/data_cifs/sid/monkey/spike_lfp_data/individual_device_spk_lfp.p","rb"))
 
-    gs = gridspec(7,2)
+    gs = gridspec.GridSpec(7,2)
     stc_per_video_avg(gs, main_dict, height, width)
     stc_all_videos(gs, main_dict, height, width)
     stc_per_video_avg(gs, main_dict, height, width)
