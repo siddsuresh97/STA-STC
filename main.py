@@ -37,8 +37,8 @@ def bin_neural_video(
     n_frames = len(video_feats)
     n_req_frames = int((n_frames/vid_length)*display_length)                #number of frames in the first 2 seconds
     bin_size = int((1.0/n_req_frames)*firing_rate)
-    delay = 60
-    spk_req_data = spk_data[zero_index+60:last_index+60]               # (need these datapoints which correspond to time between 0 and 2 seconds)
+    delay = 0
+    spk_req_data = spk_data[zero_index+ delay :last_index + delay]               # (need these datapoints which correspond to time between 0 and 2 seconds)
     time_req = time[zero_index:last_index]
     video_feats_req = video_feats[:n_req_frames]
     spk_count = []
@@ -278,7 +278,7 @@ def main(run_sta=True, run_stc=True, main_dict_exists = True):
     '''
 
     per_session_dir = "/media/data_cifs/sid/monkey/spike_lfp_data/session_data"
-    results_dir = "/media/data_cifs/sid/monkey/spike_lfp_data/results_cont_spike_60ms_delay"
+    results_dir = "/media/data_cifs/sid/monkey/spike_lfp_data/results_cont_spk_values"
     if(PER_SESSION_DATA_EXISTS):
         pass
     else:
