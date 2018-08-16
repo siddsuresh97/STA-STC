@@ -37,7 +37,8 @@ def bin_neural_video(
     n_frames = len(video_feats)
     n_req_frames = int((n_frames/vid_length)*display_length)                #number of frames in the first 2 seconds
     bin_size = int((1.0/n_req_frames)*firing_rate)
-    spk_req_data = spk_data[zero_index:last_index]               # (need these datapoints which correspond to time between 0 and 2 seconds)
+    delay = 60
+    spk_req_data = spk_data[zero_index+60:last_index+60]               # (need these datapoints which correspond to time between 0 and 2 seconds)
     time_req = time[zero_index:last_index]
     video_feats_req = video_feats[:n_req_frames]
     spk_count = []
@@ -47,7 +48,9 @@ def bin_neural_video(
     else:
         for i in range(1, n_req_frames + 1):
             spk_count += [int(sum(spk_req_data[int((i-1)*bin_size):int(i*bin_size)])/np.floor(firing_rate))]
+    total_spikes = sum(spk_count)
     spk_count = np.asarray(spk_count).reshape(-1, 1)
+    spk_count = spk_count/float(total_spikes)
     return spk_count, video_feats_req
 
 
@@ -181,7 +184,7 @@ def stc_all_videos(file, results_dir, gs, main_dict, height, width ):
         regr1.fit(zca_feats, spk_cat_spikes)
         total_stc = regr1.coef_
         plt.subplot(gs[int(idx/3),int(idx%3)])                                    #3 corresponds to the number of columns
-        plt.title("STC neuron corresponding to device {}".format(i),fontsize=1)
+        plt.title("STC neuron corresponding to device {}".format(i),fontsize=5)
         plt.imshow(regr1.coef_.reshape(height, width),cmap="Reds")
     plt.savefig(os.path.join(results_dir,"stc_all_videos_{}.png".format(file)))
 
@@ -215,9 +218,9 @@ def stc_per_video_avg(file, results_dir, gs, main_dict, height, width):
         spikes_per_video = np.array([per_video_spk[i].reshape(per_video_spk[i].shape[0],1) for i in range(len(per_video_spk))])
         assert(len(per_video_spk)==len(feats_per_video))
         stc_per_video = []
-        for i in range(len(feats_per_video)):
+        for j in range(len(feats_per_video)):
             regr = linear_model.LinearRegression()
-            regr.fit(feats_per_video[i], spikes_per_video[i])
+            regr.fit(feats_per_video[j], spikes_per_video[j])
             stc_per_video += [regr.coef_[:,:]]
         stc_mean = np.mean(np.array(stc_per_video).squeeze() ,axis = 0)
         plt.subplot(gs[int(idx/3),int(idx%3)])
@@ -269,13 +272,13 @@ def main(run_sta=True, run_stc=True, main_dict_exists = True):
     h = 14
     w = 25
     PER_SESSION_DATA_EXISTS = True
-    PER_SESSION_RESULTS_EXISTS = True
+    PER_SESSION_RESULTS_EXISTS = False
     '''
     go though spikes of all neurons followed by lfps of all neurons
     '''
-    
+
     per_session_dir = "/media/data_cifs/sid/monkey/spike_lfp_data/session_data"
-    results_dir = "/media/data_cifs/sid/monkey/spike_lfp_data/session_data_results"
+    results_dir = "/media/data_cifs/sid/monkey/spike_lfp_data/results_cont_spike_60ms_delay"
     if(PER_SESSION_DATA_EXISTS):
         pass
     else:
