@@ -273,30 +273,7 @@ def main(run_sta=True, run_stc=True, main_dict_exists = True):
     '''
     go though spikes of all neurons followed by lfps of all neurons
     '''
-    '''
-    if(main_dict_exists == False):
-        spike_files_dir = "/media/data_cifs/sid/monkey/spike_lfp_data/spike"
-        lfp_files_dir = "/media/data_cifs/sid/monkey/spike_lfp_data/lfp"
-        present_devices = [6, 7, 9, 11, 13, 20, 22, 24, 25, 26, 28, 29, 31, 32]
-        lfp_dict = {}
-        spk_dict = {}
-        main_dict = {}
-        for i in tqdm(present_devices):
-            spk_fname = os.path.join(spike_files_dir, "fname_to_spk_{}.p".format(i))
-            lfp_fname = os.path.join(lfp_files_dir, "fname_to_lfp_{}.p".format(i))
-            feats_fname = "/media/data_cifs/sid/monkey/frames_to_numpy_corrected.p"
-            time_fname = "/media/data_cifs/sid/monkey/time.p"
-            lfp_stas, lfp_stcs, lfp_cat_feats, lfp_cat_lfps, lfp_cat_frames, lfp_cat_videos = lfp_or_spk(h, w, lfp_fname, feats_fname, time_fname, lfp = True, run_sta = True, run_stc = True)
-            spk_stas, spk_stcs, spk_cat_feats, spk_cat_spikes, spk_cat_frames, spk_cat_videos = lfp_or_spk(h, w, spk_fname, feats_fname, time_fname, lfp = False, run_sta = True, run_stc = True)
-            assert(np.allclose(lfp_cat_feats, spk_cat_feats ))
-            assert(np.allclose(lfp_cat_frames, spk_cat_frames))
-            assert(np.allclose(lfp_cat_videos, spk_cat_videos))
-            main_dict.update({i:{'lfp_stas' : lfp_stas, 'lfp_stcs' : lfp_stcs, 'cat_feats' : lfp_cat_feats,
-                                    'spk_stas' : spk_stas, 'spk_stcs' : spk_stcs, 'lfp_cat_lfps': lfp_cat_lfps,
-                                    'spk_cat_spikes' : spk_cat_spikes, 'cat_frames' : spk_cat_frames, 'cat_videos' : spk_cat_videos}})
-    else:
-        main_dict = pickle.load(open("/media/data_cifs/sid/monkey/spike_lfp_data/individual_device_spk_lfp.p","rb"))
-    '''
+    
     per_session_dir = "/media/data_cifs/sid/monkey/spike_lfp_data/session_data"
     results_dir = "/media/data_cifs/sid/monkey/spike_lfp_data/session_data_results"
     if(PER_SESSION_DATA_EXISTS):
