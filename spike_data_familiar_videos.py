@@ -36,14 +36,14 @@ def familiar_spk_lfp(date, device_id, data_spk, data_lfp):
         if(video_fname in fname_to_spk.keys()):
             fname_to_spk[video_fname].append(spk_data_familiar_trials[i])
         else:
-            fname_to_spk.update({video_fname:[spk_data_familiar_trials]})
+            fname_to_spk.update({video_fname:[spk_data_familiar_trials[i]]})
 
         assert(len(familiar_fnames_lfp)==len(familiar_fnames_spk))
 
         if(video_fname in fname_to_lfp.keys()):
             fname_to_lfp[video_fname].append(lfp_data_familiar_trials[i])
         else:
-            fname_to_lfp.update({video_fname:[lfp_data_familiar_trials]})
+            fname_to_lfp.update({video_fname:[lfp_data_familiar_trials[i]]})
 
     return fname_to_spk, fname_to_lfp
 

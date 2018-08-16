@@ -3,12 +3,14 @@ import pickle
 import numpy as np
 
 from zca import ZCA    #"https://github.com/mwv/zca"
-
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import savefig
 import matplotlib.gridspec as gridspec
-
+import matplotlib
+matplotlib.use('Agg')
 from tqdm import tqdm
+
+from collections import Counter
 
 from sklearn import linear_model
 from sklearn.metrics import mean_squared_error, r2_score
@@ -121,11 +123,17 @@ def lfp_sta_stc(height, width, spk_fname, feats_fname, time_fname="/media/cifs-s
 def backbone(height, width, spk, feats, time, lfp, run_sta, run_stc):
         time = time['time']
         all_feats, all_spikes, stas, stcs, frame_regressor, video_regressor = [], [], [], [], [], []
-        for idx, i in enumerate(spk.keys()):
-            # import ipdb;ipdb.set_trace()
+        temp_all_feats = []
+        temp_all_spikes = []    #to list out the data incase the video was shown multiple times in a session
+        for key in spk.keys():
+            for data in spk[key]:
+                temp_all_spikes += [data]
+                temp_all_feats += [feats[key]]
+        assert(len(temp_all_feats) == len(temp_all_spikes))
+        for idx, i in enumerate(range(len(temp_all_feats))):
             spk_data, video_feats = bin_neural_video(
-                spk_data=spk[i],
-                video_feats=feats[i],
+                spk_data = temp_all_spikes[i],
+                video_feats = temp_all_feats[i],
                 time=time, lfp = lfp)
             gray_scale_frames = rgb_to_grayscale(video_feats, height = height, width = width, channels = 3)
             flat_feats = flatten_feats(gray_scale_frames)
@@ -138,7 +146,6 @@ def backbone(height, width, spk, feats, time, lfp, run_sta, run_stc):
                 stas += [sta(video_feats=flat_feats, spk_data=spk_data, time=time, h = height, w = width, lfp = lfp)]
             if run_stc:
                 stcs += [stc(video_feats=flat_feats, spk_data=spk_data, time=time, h = height, w = width, lfp = lfp)]
-
         cat_feats = np.concatenate(all_feats, axis=0)
         cat_spikes = np.concatenate(all_spikes, axis=0)
         cat_frames = np.concatenate(frame_regressor, axis=0)
@@ -164,7 +171,7 @@ def lfp_or_spk(height, width, spk_fname, feats_fname, time_fname, lfp, run_sta=T
 
     return stas, stcs, cat_feats, cat_spikes, cat_frames, cat_videos
 
-def stc_all_videos(gs, main_dict, height, width ):
+def stc_all_videos(file, results_dir, gs, main_dict, height, width ):
     for idx,i in enumerate(main_dict.keys()):
         cat_feats = main_dict[i]['cat_feats']
         spk_cat_spikes = main_dict[i]['spk_cat_spikes']
@@ -173,12 +180,12 @@ def stc_all_videos(gs, main_dict, height, width ):
         regr1 = linear_model.LinearRegression()
         regr1.fit(zca_feats, spk_cat_spikes)
         total_stc = regr1.coef_
-        plt.subplot(gs[int(idx/2),int(idx%2)])
+        plt.subplot(gs[int(idx/3),int(idx%3)])                                    #3 corresponds to the number of columns
         plt.title("STC neuron corresponding to device {}".format(i),fontsize=1)
         plt.imshow(regr1.coef_.reshape(height, width),cmap="Reds")
-    plt.show()
+    plt.savefig(os.path.join(results_dir,"stc_all_videos_{}.png".format(file)))
 
-def sta_per_video_avg(gs, main_dict, height, width):
+def sta_per_video_avg(file, results_dir, gs, main_dict, height, width):
     for idx,i in enumerate(main_dict.keys()):
         cat_feats = main_dict[i]['cat_feats']
         spk_cat_spikes = main_dict[i]['spk_cat_spikes']
@@ -188,12 +195,12 @@ def sta_per_video_avg(gs, main_dict, height, width):
         zca_feats = zca_whiten(cat_feats)
         total_sta = zca_feats*spk_cat_spikes
         per_video_sta = np.array([np.mean(total_sta[np.argwhere(cat_videos==x),:], axis = 0) for x in np.unique(cat_videos)])
-        plt.subplot(gs[int(idx/2),int(idx%2)])
+        plt.subplot(gs[int(idx/3),int(idx%3)])
         plt.title("PER_vid_STA_avg corresponding to device {}".format(i),fontsize=5)
         plt.imshow(np.mean(per_video_sta, axis = 0 ).reshape(height, width),cmap="Reds")
-    plt.show()
+    plt.savefig(os.path.join(results_dir,"sta_per_video_avg{}.png".format(file)))
 
-def stc_per_video_avg(gs, main_dict, height, width):
+def stc_per_video_avg(file, results_dir, gs, main_dict, height, width):
     for idx,i in enumerate(main_dict.keys()):
         cat_feats = main_dict[i]['cat_feats']
         spk_cat_spikes = main_dict[i]['spk_cat_spikes']
@@ -213,17 +220,59 @@ def stc_per_video_avg(gs, main_dict, height, width):
             regr.fit(feats_per_video[i], spikes_per_video[i])
             stc_per_video += [regr.coef_[:,:]]
         stc_mean = np.mean(np.array(stc_per_video).squeeze() ,axis = 0)
-        plt.subplot(gs[int(idx/2),int(idx%2)])
+        plt.subplot(gs[int(idx/3),int(idx%3)])
         plt.title("PER_vid_STC_avg corresponding to device {}".format(i),fontsize=5)
         plt.imshow(stc_mean.reshape(height, width),cmap="Reds")
-    plt.show()
+    plt.savefig(os.path.join(results_dir,"stc_per_video_avg{}.png".format(file)))
 
+def per_session_device_data_to_pickle(date, height, width):
+    h = height
+    w = width
+    spike_files_dir = "/media/data_cifs/sid/monkey/spike_lfp_data/spike/{}".format(date)
+    lfp_files_dir = "/media/data_cifs/sid/monkey/spike_lfp_data/lfp/{}".format(date)
+    device_fnames = os.listdir(spike_files_dir)
+    present_devices = [i.split('_')[3].split(".")[0] for i in device_fnames]
+    unique_devices = [int(i) for i in present_devices if Counter(present_devices)[i]<2]
+    lfp_dict = {}
+    spk_dict = {}
+    main_dict = {}
+    for i in tqdm(unique_devices):
+        spk_fname = os.path.join(spike_files_dir, "fname_to_spk_{}.p".format(i))
+        lfp_fname = os.path.join(lfp_files_dir, "fname_to_lfp_{}.p".format(i))
+        feats_fname = "/media/data_cifs/sid/monkey/frames_to_numpy_corrected.p"
+        time_fname = "/media/data_cifs/sid/monkey/time.p"
+        lfp_stas, lfp_stcs, lfp_cat_feats, lfp_cat_lfps, lfp_cat_frames, lfp_cat_videos = lfp_or_spk(h, w, lfp_fname, feats_fname, time_fname, lfp = True, run_sta = True, run_stc = True)
+        spk_stas, spk_stcs, spk_cat_feats, spk_cat_spikes, spk_cat_frames, spk_cat_videos = lfp_or_spk(h, w, spk_fname, feats_fname, time_fname, lfp = False, run_sta = True, run_stc = True)
+        assert(np.allclose(lfp_cat_feats, spk_cat_feats ))
+        assert(np.allclose(lfp_cat_frames, spk_cat_frames))
+        assert(np.allclose(lfp_cat_videos, spk_cat_videos))
+        main_dict.update({i:{'lfp_stas' : lfp_stas, 'lfp_stcs' : lfp_stcs, 'cat_feats' : lfp_cat_feats,
+                                        'spk_stas' : spk_stas, 'spk_stcs' : spk_stcs, 'lfp_cat_lfps': lfp_cat_lfps,
+                                        'spk_cat_spikes' : spk_cat_spikes, 'cat_frames' : spk_cat_frames, 'cat_videos' : spk_cat_videos}})
+    pickle.dump(main_dict,open("/media/data_cifs/sid/monkey/spike_lfp_data/session_data/{}.p".format(date),'wb'))
+
+def visualisation_of_results(file, results_dir, main_dict, height, width):
+    h = height
+    w = width
+    gs = gridspec.GridSpec(7,3)
+    stc_per_video_avg(file, results_dir, gs, main_dict, h, w)
+    stc_all_videos(file, results_dir, gs, main_dict, h, w)
+    sta_per_video_avg(file, results_dir, gs, main_dict, h, w)
+
+def save_per_session_results(dir, results_dir, height, width):
+    fnames = os.listdir(dir)
+    for file in fnames:
+        main_dict = pickle.load(open(os.path.join(dir,file),'rb'))
+        visualisation_of_results(file, results_dir, main_dict, height, width)
 
 def main(run_sta=True, run_stc=True, main_dict_exists = True):
     h = 14
     w = 25
+    PER_SESSION_DATA_EXISTS = True
+    PER_SESSION_RESULTS_EXISTS = True
     '''
     go though spikes of all neurons followed by lfps of all neurons
+    '''
     '''
     if(main_dict_exists == False):
         spike_files_dir = "/media/data_cifs/sid/monkey/spike_lfp_data/spike"
@@ -247,11 +296,23 @@ def main(run_sta=True, run_stc=True, main_dict_exists = True):
                                     'spk_cat_spikes' : spk_cat_spikes, 'cat_frames' : spk_cat_frames, 'cat_videos' : spk_cat_videos}})
     else:
         main_dict = pickle.load(open("/media/data_cifs/sid/monkey/spike_lfp_data/individual_device_spk_lfp.p","rb"))
+    '''
+    per_session_dir = "/media/data_cifs/sid/monkey/spike_lfp_data/session_data"
+    results_dir = "/media/data_cifs/sid/monkey/spike_lfp_data/session_data_results"
+    if(PER_SESSION_DATA_EXISTS):
+        pass
+    else:
+        dates = ['180716','180719','180724','180728','180730']
+        for date in dates:
+            per_session_device_data_to_pickle(date, h, w)
+    if(PER_SESSION_RESULTS_EXISTS):
+        pass
+    else:
+        save_per_session_results(per_session_dir, results_dir, h, w)
 
-    gs = gridspec.GridSpec(7,2)
-    stc_per_video_avg(gs, main_dict, h, w)
-    stc_all_videos(gs, main_dict, h, w)
-    stc_per_video_avg(gs, main_dict, h, w)
+
+
+
 
 
 if __name__=="__main__":
