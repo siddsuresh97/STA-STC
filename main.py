@@ -319,15 +319,5 @@ def main(run_sta=True, run_stc=True, main_dict_exists = True, debug =False):
 
 
 
-
-<<<<<<< HEAD
-=======
-    gs = gridspec.GridSpec(7,2)
-    stc_per_video_avg(gs, main_dict, h, w)
-    stc_all_videos(gs, main_dict, h, w)
-    stc_per_video_avg(gs, main_dict, h, w)
->>>>>>> 20f0184918831949a53cbf28c57179780b0c2b68
-
-
 if __name__=="__main__":
     main()
