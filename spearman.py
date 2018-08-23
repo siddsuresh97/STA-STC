@@ -61,9 +61,10 @@ def main():
     dir_data = '/media/data_cifs/sid/monkey/spike_data/data/'
     animal_name = 'thor'
     task = 'movies'
+    device_id = 6
     dates = []
     data_spk = load_data_from_h5(dir_data, animal_name, task, 'spk', dates)
-    main_dict = dict_for_spearman(6, data_spk)
+    main_dict = dict_for_spearman(device_id, data_spk)
     req_dict = dict_with_spk_count(main_dict)
     coef = spearman_coef(req_dict)
     print(coef)
