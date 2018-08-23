@@ -17,18 +17,33 @@ def load_data_from_h5(dir_data='/shared/homes/rxia/data', name='', block_type=''
     return(dict_data)
 
 
-def familiar_spk_lfp(date, device_id, data_spk, data_lfp):
-    familiar_trials_spk = [i for i in range(len(data_spk[date]['trial_info'])) if data_spk[date]['trial_info']['stim_familiarized'][i]==1 ]
-    familiar_fnames_spk = [data_spk[date]['trial_info']['stim_names'][i] for i in familiar_trials_spk]
-    #both the variables below are similar to the ones above . It means that dta is ordered in a similar way
-    familiar_trials_lfp = [i for i in range(len(data_lfp[date]['trial_info'])) if data_lfp[date]['trial_info']['stim_familiarized'][i]==1 ]
-    familiar_fnames_lfp = [data_lfp[date]['trial_info']['stim_names'][i] for i in familiar_trials_lfp]
-    #req_unit_index_spk = [i for i in data_lfp[date]['signal_info']['channel_index']].index(device_id)
-    spk_data_familiar_trials = data_spk[date]['data'][familiar_trials_spk,:,device_id]
-    lfp_data_familiar_trials = data_lfp[date]['data'][familiar_trials_lfp,:,device_id]
+def familiar_spk_lfp(date, device_id, data_spk, data_lfp, both = True):
+    if(both== False):
+        print("ONLY FAMILIAR")
+        familiar_trials_spk = [i for i in range(len(data_spk[date]['trial_info'])) if data_spk[date]['trial_info']['stim_familiarized'][i]==1 ]
+        familiar_fnames_spk = [data_spk[date]['trial_info']['stim_names'][i] for i in familiar_trials_spk]
+        #both the variables below are similar to the ones above . It means that dta is ordered in a similar way
+        familiar_trials_lfp = [i for i in range(len(data_lfp[date]['trial_info'])) if data_lfp[date]['trial_info']['stim_familiarized'][i]==1 ]
+        familiar_fnames_lfp = [data_lfp[date]['trial_info']['stim_names'][i] for i in familiar_trials_lfp]
+        #req_unit_index_spk = [i for i in data_lfp[date]['signal_info']['channel_index']].index(device_id)
+        spk_data_familiar_trials = data_spk[date]['data'][familiar_trials_spk,:,device_id]
+        lfp_data_familiar_trials = data_lfp[date]['data'][familiar_trials_lfp,:,device_id]
 
-    fname_to_spk={}
-    fname_to_lfp={}
+        fname_to_spk={}
+        fname_to_lfp={}
+    else:
+        print("ALL")
+        familiar_trials_spk = [i for i in range(len(data_spk[date]['trial_info']))]
+        familiar_fnames_spk = [data_spk[date]['trial_info']['stim_names'][i] for i in familiar_trials_spk]
+        #both the variables below are similar to the ones above . It means that dta is ordered in a similar way
+        familiar_trials_lfp = [i for i in range(len(data_lfp[date]['trial_info']))]
+        familiar_fnames_lfp = [data_lfp[date]['trial_info']['stim_names'][i] for i in familiar_trials_lfp]
+        #req_unit_index_spk = [i for i in data_lfp[date]['signal_info']['channel_index']].index(device_id)
+        spk_data_familiar_trials = data_spk[date]['data'][familiar_trials_spk,:,device_id]
+        lfp_data_familiar_trials = data_lfp[date]['data'][familiar_trials_lfp,:,device_id]
+
+        fname_to_spk={}
+        fname_to_lfp={}
 
     for i in range(len(familiar_fnames_spk)):
         video_fname = familiar_fnames_spk[i]
@@ -47,38 +62,103 @@ def familiar_spk_lfp(date, device_id, data_spk, data_lfp):
 
     return fname_to_spk, fname_to_lfp
 
-def data_to_pickle(date, device, data_spk, data_lfp):
-    spk_data_fname = "/media/data_cifs/sid/monkey/spike_lfp_data/spike/{}/fname_to_spk_{}.p".format(date, device)
-    lfp_data_fname = "/media/data_cifs/sid/monkey/spike_lfp_data/lfp/{}/fname_to_lfp_{}.p".format(date, device)
-    if(os.path.isdir("/media/data_cifs/sid/monkey/spike_lfp_data/spike/{}".format(date))):
-        pass
-    else:
-        os.makedirs("/media/data_cifs/sid/monkey/spike_lfp_data/spike/{}".format(date))
-    if(os.path.isdir("/media/data_cifs/sid/monkey/spike_lfp_data/lfp/{}".format(date))):
-        pass
-    else:
-        os.makedirs("/media/data_cifs/sid/monkey/spike_lfp_data/lfp/{}".format(date))
-    '''
-    if(os.path.isdir("/media/data_cifs/sid/monkey/spike_lfp_data/spike/{}".format(date))==False):
-        os.makedirs("/media/data_cifs/sid/monkey/spike_lfp_data/spike/{}".format(date))
+def unfamiliar_spk_lfp(date, device_id, data_spk, data_lfp):
+    unfamiliar_trials_spk = [i for i in range(len(data_spk[date]['trial_info'])) if data_spk[date]['trial_info']['stim_familiarized'][i]==0 ]
+    unfamiliar_fnames_spk = [data_spk[date]['trial_info']['stim_names'][i] for i in unfamiliar_trials_spk]
+    #both the variables below are similar to the ones above . It means that dta is ordered in a similar way
+    unfamiliar_trials_lfp = [i for i in range(len(data_lfp[date]['trial_info'])) if data_lfp[date]['trial_info']['stim_familiarized'][i]==0 ]
+    unfamiliar_fnames_lfp = [data_lfp[date]['trial_info']['stim_names'][i] for i in unfamiliar_trials_lfp]
+    #req_unit_index_spk = [i for i in data_lfp[date]['signal_info']['channel_index']].index(device_id)
+    spk_data_unfamiliar_trials = data_spk[date]['data'][unfamiliar_trials_spk,:,device_id]
+    lfp_data_unfamiliar_trials = data_lfp[date]['data'][unfamiliar_trials_lfp,:,device_id]
 
-    if(os.path.isdir("/media/data_cifs/sid/monkey/spike_lfp_data/lfp/{}")==False):
-        os.makedirs("/media/data_cifs/sid/monkey/spike_lfp_data/lfp/{}".format(date))
-    '''
-    device_id = list(data_spk[date]['signal_info']['channel_index']).index(device)
-    spk, lfp = familiar_spk_lfp(date, device_id, data_spk, data_lfp)
-    pickle.dump(spk, open(spk_data_fname,'wb'))
-    pickle.dump(lfp,open(lfp_data_fname,'wb'))
+    fname_to_spk={}
+    fname_to_lfp={}
 
-def single_date_data_pickle_dump(date, data_spk, data_lfp):
+    for i in range(len(unfamiliar_fnames_spk)):
+        video_fname = unfamiliar_fnames_spk[i]
+        assert(len(spk_data_unfamiliar_trials)==len(unfamiliar_trials_spk))
+        if(video_fname in fname_to_spk.keys()):
+            fname_to_spk[video_fname].append(spk_data_unfamiliar_trials[i])
+        else:
+            fname_to_spk.update({video_fname:[spk_data_unfamiliar_trials[i]]})
+
+        assert(len(unfamiliar_fnames_lfp)==len(unfamiliar_fnames_spk))
+
+        if(video_fname in fname_to_lfp.keys()):
+            fname_to_lfp[video_fname].append(lfp_data_unfamiliar_trials[i])
+        else:
+            fname_to_lfp.update({video_fname:[lfp_data_unfamiliar_trials[i]]})
+
+    return fname_to_spk, fname_to_lfp
+
+def data_to_pickle(date, device, data_spk, data_lfp, familiar = False, unfamiliar = False, both = True):
+    '''
+    set flag familiar or unfamiliar dependign on the data you want to save
+    '''
+    if(both):
+        spk_data_fname = "/media/data_cifs/sid/monkey/spike_lfp_all/spike/{}/fname_to_spk_{}.p".format(date, device)
+        lfp_data_fname = "/media/data_cifs/sid/monkey/spike_lfp_all/lfp/{}/fname_to_lfp_{}.p".format(date, device)
+        if(os.path.isdir("/media/data_cifs/sid/monkey/spike_lfp_all/spike/{}".format(date))):
+            pass
+        else:
+            os.makedirs("/media/data_cifs/sid/monkey/spike_lfp_all/spike/{}".format(date))
+        if(os.path.isdir("/media/data_cifs/sid/monkey/spike_lfp_all/lfp/{}".format(date))):
+            pass
+        else:
+            os.makedirs("/media/data_cifs/sid/monkey/spike_lfp_all/lfp/{}".format(date))
+        device_id = list(data_spk[date]['signal_info']['channel_index']).index(device)
+        spk, lfp = familiar_spk_lfp(date, device_id, data_spk, data_lfp, both)
+        pickle.dump(spk, open(spk_data_fname,'wb'))
+        pickle.dump(lfp,open(lfp_data_fname,'wb'))
+
+
+    if(unfamiliar):
+        spk_data_fname = "/media/data_cifs/sid/monkey/unfamiliar_spike_lfp_data/spike/{}/fname_to_spk_{}.p".format(date, device)
+        lfp_data_fname = "/media/data_cifs/sid/monkey/unfamiliar_spike_lfp_data/lfp/{}/fname_to_lfp_{}.p".format(date, device)
+        if(os.path.isdir("/media/data_cifs/sid/monkey/unfamiliar_spike_lfp_data/spike/{}".format(date))):
+            pass
+        else:
+            os.makedirs("/media/data_cifs/sid/monkey/unfamiliar_spike_lfp_data/spike/{}".format(date))
+        if(os.path.isdir("/media/data_cifs/sid/monkey/unfamiliar_spike_lfp_data/lfp/{}".format(date))):
+            pass
+        else:
+            os.makedirs("/media/data_cifs/sid/monkey/unfamiliar_spike_lfp_data/lfp/{}".format(date))
+        device_id = list(data_spk[date]['signal_info']['channel_index']).index(device)
+        spk, lfp = unfamiliar_spk_lfp(date, device_id, data_spk, data_lfp)
+        pickle.dump(spk, open(spk_data_fname,'wb'))
+        pickle.dump(lfp,open(lfp_data_fname,'wb'))
+    if(familiar):
+        spk_data_fname = "/media/data_cifs/sid/monkey/spike_lfp_data/spike/{}/fname_to_spk_{}.p".format(date, device)
+        lfp_data_fname = "/media/data_cifs/sid/monkey/spike_lfp_data/lfp/{}/fname_to_lfp_{}.p".format(date, device)
+        if(os.path.isdir("/media/data_cifs/sid/monkey/spike_lfp_data/spike/{}".format(date))):
+            pass
+        else:
+            os.makedirs("/media/data_cifs/sid/monkey/spike_lfp_data/spike/{}".format(date))
+        if(os.path.isdir("/media/data_cifs/sid/monkey/spike_lfp_data/lfp/{}".format(date))):
+            pass
+        else:
+            os.makedirs("/media/data_cifs/sid/monkey/spike_lfp_data/lfp/{}".format(date))
+        '''
+        if(os.path.isdir("/media/data_cifs/sid/monkey/spike_lfp_data/spike/{}".format(date))==False):
+            os.makedirs("/media/data_cifs/sid/monkey/spike_lfp_data/spike/{}".format(date))
+        if(os.path.isdir("/media/data_cifs/sid/monkey/spike_lfp_data/lfp/{}")==False):
+            os.makedirs("/media/data_cifs/sid/monkey/spike_lfp_data/lfp/{}".format(date))
+        '''
+        device_id = list(data_spk[date]['signal_info']['channel_index']).index(device)
+        spk, lfp = familiar_spk_lfp(date, device_id, data_spk, data_lfp, False)
+        pickle.dump(spk, open(spk_data_fname,'wb'))
+        pickle.dump(lfp,open(lfp_data_fname,'wb'))
+
+
+def single_date_data_pickle_dump(date, data_spk, data_lfp, familiar, unfamiliar, both):
     devices = [data_spk[date]['signal_info']['channel_index'][i] for i in range(len(data_spk[date]['signal_info']['channel_index']))]
     unique_devices = [i for i in Counter(devices).keys() if Counter(devices)[i]<2]
-
     for device in unique_devices:
-        data_to_pickle(date, device, data_spk, data_lfp)
+        data_to_pickle(date, device, data_spk, data_lfp, familiar, unfamiliar, both)
 
 
-def main(data_exists = True):
+def main(data_exists = False):
     if(data_exists):
         print("Data already exists. Kindle check in /media/data_cifs/sid/monkey/spike_lfp_data/ ")
 
@@ -87,12 +167,15 @@ def main(data_exists = True):
         animal_name = 'thor'
         task = 'movies'
         #dates = []
+        familiar = False
+        unfamiliar = False
+        both = True
         dates = []
         data_spk = load_data_from_h5(dir_data, animal_name, task, 'spk', dates) # Load spike data
         data_lfp = load_data_from_h5(dir_data, animal_name, task, 'lfp', dates) # Load LFP data
 
         for date in data_spk.keys():
-            single_date_data_pickle_dump(date, data_spk, data_lfp)
+            single_date_data_pickle_dump(date, data_spk, data_lfp, familiar = familiar, unfamiliar = unfamiliar, both = both)
 
 
 if __name__ == "__main__":
