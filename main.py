@@ -36,12 +36,12 @@ def bin_neural_video(
         vid_length=5,
         display_length=2,
         zero_index=305,
-        last_index=2341, lfp = False):
+        last_index=2341, lfp = False, delay = 0):
     """Bin neural data according to time."""
     n_frames = len(video_feats)
     n_req_frames = int((n_frames/vid_length)*display_length)                #number of frames in the first 2 seconds
     bin_size = int((1.0/n_req_frames)*firing_rate)
-    delay = 100
+    delay = delay
     shift  = int(delay /(1000/firing_rate))
     spk_req_data = spk_data[zero_index+ shift :last_index + shift]               # (need these datapoints which correspond to time between 0 and 2 seconds)
     time_req = time[zero_index:last_index]
@@ -50,6 +50,10 @@ def bin_neural_video(
     if lfp:
         for i in range(1, n_req_frames + 1):
             spk_count += [(np.mean(spk_req_data[int((i-1)*bin_size):int(i*bin_size)]))]
+        mu = np.mean(spk_count)
+        std = np.std(spk_count)
+        spk_count = (spk_count - mu)/std
+
     else:
         for i in range(1, n_req_frames + 1):
             spk_count += [int(sum(spk_req_data[int((i-1)*bin_size):int(i*bin_size)])/np.floor(firing_rate))]
@@ -68,13 +72,13 @@ def flatten_feats(feats):
     return feats.reshape(feats.shape[0], -1)
 
 
-def sta(video_feats, spk_data, time, preprocess=False, h = 14, w = 14, lfp = False):
+def sta(video_feats, spk_data, time, preprocess=False, h = 14, w = 14, lfp = False, delay = 0):
     """STA of video feats and spk_data."""
     if preprocess:
         spk_data, video_feats = bin_neural_video(
             spk_data=spk_data,
             video_feats=video_feats,
-            time=time , lfp = lfp)
+            time=time , lfp = lfp, delay = delay )
         video_feats = flatten_feats(video_feats)
     return np.mean((video_feats * spk_data), axis = 0).reshape(h,w)
 
@@ -88,13 +92,13 @@ def sta(video_feats, spk_data, time, preprocess=False, h = 14, w = 14, lfp = Fal
     '''
 
 
-def stc(video_feats, spk_data, time, preprocess=False, h = 14, w = 14, lfp = False):
+def stc(video_feats, spk_data, time, preprocess=False, h = 14, w = 14, lfp = False, delay = 0):
     feat_shape = video_feats.shape
     if preprocess:
         spk_data, video_feats = bin_neural_video(
             spk_data=spk_data,
             video_feats=video_feats,
-            time=time, lfp = lfp)
+            time=time, lfp = lfp , delay = delay)
         video_feats = flatten_feats(video_feats)
     regr = linear_model.LinearRegression()
     regr.fit(video_feats, spk_data)
@@ -124,15 +128,15 @@ def zca_whiten(X):
     assert(np.allclose(X, X_reconstructed))
     return X_whitened
 
-def spk_sta_stc(height, width, spk_fname, feats_fname, time_fname="/media/cifs-serrelab/sid/monkey/time.p", lfp = False, run_sta=True, run_stc=True):
+def spk_sta_stc(height, width, spk_fname, feats_fname, time_fname="/media/cifs-serrelab/sid/monkey/time.p", lfp = False, run_sta=True, run_stc=True, delay = 0):
     spk, feats, time = load_data(spk_fname, feats_fname, time_fname)
-    return backbone(height, width, spk, feats, time, lfp = False, run_sta=False, run_stc=False)
+    return backbone(height, width, spk, feats, time, lfp = False, run_sta=False, run_stc=False, delay = delay)
 
-def lfp_sta_stc(height, width, spk_fname, feats_fname, time_fname="/media/cifs-serrelab/sid/monkey/time.p", lfp = True, run_sta=True, run_stc=True):
+def lfp_sta_stc(height, width, spk_fname, feats_fname, time_fname="/media/cifs-serrelab/sid/monkey/time.p", lfp = True, run_sta=True, run_stc=True, delay = 0):
     spk, feats, time = load_data(spk_fname, feats_fname, time_fname)
-    return backbone(height, width, spk, feats, time, lfp = True, run_sta=False, run_stc=False )
+    return backbone(height, width, spk, feats, time, lfp = True, run_sta=False, run_stc=False, delay = delay )
 
-def backbone(height, width, spk, feats, time, lfp, run_sta, run_stc):
+def backbone(height, width, spk, feats, time, lfp, run_sta, run_stc, delay = 0):
         time = time['time']
         all_feats, all_spikes, stas, stcs, frame_regressor, video_regressor = [], [], [], [], [], []
         temp_all_feats = []
@@ -146,7 +150,7 @@ def backbone(height, width, spk, feats, time, lfp, run_sta, run_stc):
             spk_data, video_feats = bin_neural_video(
                 spk_data = temp_all_spikes[i],
                 video_feats = temp_all_feats[i],
-                time=time, lfp = lfp)
+                time=time, lfp = lfp, delay = delay)
             gray_scale_frames = rgb_to_grayscale(video_feats, height = height, width = width, channels = 3)
             flat_feats = flatten_feats(gray_scale_frames)
             #zca_flat_feats = zca_whiten(flat_feats)
@@ -155,9 +159,9 @@ def backbone(height, width, spk, feats, time, lfp, run_sta, run_stc):
             frame_regressor += [np.arange(len(spk_data))]
             video_regressor += [np.repeat(idx, len(spk_data))]
             if run_sta:
-                stas += [sta(video_feats=flat_feats, spk_data=spk_data, time=time, h = height, w = width, lfp = lfp)]
+                stas += [sta(video_feats=flat_feats, spk_data=spk_data, time=time, h = height, w = width, lfp = lfp, delay = delay)]
             if run_stc:
-                stcs += [stc(video_feats=flat_feats, spk_data=spk_data, time=time, h = height, w = width, lfp = lfp)]
+                stcs += [stc(video_feats=flat_feats, spk_data=spk_data, time=time, h = height, w = width, lfp = lfp, delay = delay)]
         cat_feats = np.concatenate(all_feats, axis=0)
         cat_spikes = np.concatenate(all_spikes, axis=0)
         cat_frames = np.concatenate(frame_regressor, axis=0)
@@ -165,29 +169,32 @@ def backbone(height, width, spk, feats, time, lfp, run_sta, run_stc):
 
         return stas, stcs, cat_feats, cat_spikes, cat_frames, cat_videos
 
-def lfp_or_spk(height, width, spk_fname, feats_fname, time_fname, lfp, run_sta=True, run_stc=True):
+def lfp_or_spk(height, width, spk_fname, feats_fname, time_fname, lfp, run_sta=True, run_stc=True, delay = 0):
 
     if(lfp == True):
         stas, stcs, cat_feats, cat_spikes, cat_frames, cat_videos = lfp_sta_stc(height, width, spk_fname,
                                                                                 feats_fname,
                                                                                 time_fname,
-                                                                                lfp , run_sta, run_stc)
+                                                                                lfp , run_sta, run_stc, delay)
     elif(lfp == False):
         stas, stcs, cat_feats, cat_spikes, cat_frames, cat_videos = spk_sta_stc(height, width, spk_fname,
                                                                                 feats_fname,
                                                                                 time_fname,
-                                                                                lfp , run_sta, run_stc)
+                                                                                lfp , run_sta, run_stc, delay)
 
     else:
         print("Error, please choose a mode(lfp = true or false")
 
     return stas, stcs, cat_feats, cat_spikes, cat_frames, cat_videos
 
-def stc_all_videos(file, results_dir, gs, main_dict, height, width ):
+def stc_all_videos(file, results_dir, gs, main_dict, height, width, lfp ):
     for idx,i in enumerate(main_dict.keys()):
         cat_feats = main_dict[i]['cat_feats']
-        spk_cat_spikes = main_dict[i]['spk_cat_spikes']
-        #spk_cat_lfps = main_dict[i]['lfp_cat_lfps']
+        if lfp:
+            #lfp_cat_lfps = main_dict[i]['lfp_cat_lfps']
+            spk_cat_spikes = main_dict[i]['lfp_cat_lfps']
+        else:
+            spk_cat_spikes = main_dict[i]['spk_cat_spikes']
         zca_feats = zca_whiten(cat_feats)
         regr1 = linear_model.LinearRegression()
         regr1.fit(zca_feats, spk_cat_spikes)
@@ -196,12 +203,16 @@ def stc_all_videos(file, results_dir, gs, main_dict, height, width ):
         plt.title("STC neuron corresponding to device {}".format(i),fontsize=5)
         plt.imshow(regr1.coef_.reshape(height, width),cmap="Reds")
     plt.savefig(os.path.join(results_dir,"stc_all_videos_{}.png".format(file)))
+    plt.close()
 
-def sta_per_video_avg(file, results_dir, gs, main_dict, height, width):
+def sta_per_video_avg(file, results_dir, gs, main_dict, height, width, lfp):
     for idx,i in enumerate(main_dict.keys()):
         cat_feats = main_dict[i]['cat_feats']
-        spk_cat_spikes = main_dict[i]['spk_cat_spikes']
-        #lfp_cat_lfps = main_dict[i]['lfp_cat_lfps']
+        if lfp:
+            #lfp_cat_lfps = main_dict[i]['lfp_cat_lfps']
+            spk_cat_spikes = main_dict[i]['lfp_cat_lfps']
+        else:
+            spk_cat_spikes = main_dict[i]['spk_cat_spikes']
         cat_frames = main_dict[i]['cat_frames']
         cat_videos = main_dict[i]['cat_videos']
         zca_feats = zca_whiten(cat_feats)
@@ -211,16 +222,21 @@ def sta_per_video_avg(file, results_dir, gs, main_dict, height, width):
         plt.title("PER_vid_STA_avg corresponding to device {}".format(i),fontsize=5)
         plt.imshow(np.mean(per_video_sta, axis = 0 ).reshape(height, width),cmap="Reds")
     plt.savefig(os.path.join(results_dir,"sta_per_video_avg{}.png".format(file)))
+    plt.close()
 
-def stc_per_video_avg(file, results_dir, gs, main_dict, height, width):
+def stc_per_video_avg(file, results_dir, gs, main_dict, height, width, lfp):
     '''
     confusing varaible names per_video_stc,per_video_spk.......change it later
     '''
     for idx,i in enumerate(main_dict.keys()):
         print("THE NUMBER IS {}".format(i))
         cat_feats = main_dict[i]['cat_feats']
-        spk_cat_spikes = main_dict[i]['spk_cat_spikes']
-        #lfp_cat_lfps = main_dict[i]['lfp_cat_lfps']
+        if lfp:
+            #lfp_cat_lfps = main_dict[i]['lfp_cat_lfps']
+            spk_cat_spikes = main_dict[i]['lfp_cat_lfps']
+        else:
+            spk_cat_spikes = main_dict[i]['spk_cat_spikes']
+
         cat_frames = main_dict[i]['cat_frames']
         cat_videos = main_dict[i]['cat_videos']
         zca_feats = zca_whiten(cat_feats)
@@ -240,9 +256,9 @@ def stc_per_video_avg(file, results_dir, gs, main_dict, height, width):
         plt.title("PER_vid_STC_avg corresponding to device {}".format(i),fontsize=5)
         plt.imshow(stc_mean.reshape(height, width),cmap="Reds")
     plt.savefig(os.path.join(results_dir,"stc_per_video_avg{}.png".format(file)))
+    plt.close()
 
-def per_session_device_data_to_pickle(date, height, width):
-    lfp = False
+def per_session_device_data_to_pickle(date, height, width, delay, lfp):
     h = height
     w = width
     spike_files_dir = "/media/data_cifs/sid/monkey/spike_lfp_all/spike/{}".format(date)
@@ -259,12 +275,12 @@ def per_session_device_data_to_pickle(date, height, width):
         lfp_fname = os.path.join(lfp_files_dir, "fname_to_lfp_{}.p".format(device))
         feats_fname = "/media/data_cifs/sid/monkey/spike_lfp_all/combined_feats.p"
         time_fname = "/media/data_cifs/sid/monkey/time.p"
-        spk_stas, spk_stcs, spk_cat_feats, spk_cat_spikes, spk_cat_frames, spk_cat_videos = lfp_or_spk(h, w, spk_fname, feats_fname, time_fname, lfp = False, run_sta = True, run_stc = True)
+        spk_stas, spk_stcs, spk_cat_feats, spk_cat_spikes, spk_cat_frames, spk_cat_videos = lfp_or_spk(h, w, spk_fname, feats_fname, time_fname, lfp = False, run_sta = True, run_stc = True, delay = delay)
         '''
         added the lfp condition in cases where lfp is not used to compute the results. Saves time in writing a loading pickle files
         '''
         if lfp:
-            lfp_stas, lfp_stcs, lfp_cat_feats, lfp_cat_lfps, lfp_cat_frames, lfp_cat_videos = lfp_or_spk(h, w, lfp_fname, feats_fname, time_fname, lfp = True, run_sta = True, run_stc = True)
+            lfp_stas, lfp_stcs, lfp_cat_feats, lfp_cat_lfps, lfp_cat_frames, lfp_cat_videos = lfp_or_spk(h, w, lfp_fname, feats_fname, time_fname, lfp = True, run_sta = True, run_stc = True, delay = delay)
             assert(np.allclose(lfp_cat_feats, spk_cat_feats ))
             assert(np.allclose(lfp_cat_frames, spk_cat_frames))
             assert(np.allclose(lfp_cat_videos, spk_cat_videos))
@@ -278,25 +294,38 @@ def per_session_device_data_to_pickle(date, height, width):
 
     pickle.dump(main_dict,open(store_result_in,'wb'))
 
-def visualisation_of_results(file, results_dir, main_dict, height, width):
+def visualisation_of_results(file, results_dir, main_dict, height, width, lfp ):
     h = height
     w = width
     gs = gridspec.GridSpec(7,3)
-    stc_per_video_avg(file, results_dir, gs, main_dict, h, w)
-    stc_all_videos(file, results_dir, gs, main_dict, h, w)
-    sta_per_video_avg(file, results_dir, gs, main_dict, h, w)
+    stc_per_video_avg(file, results_dir, gs, main_dict, h, w, lfp)
+    stc_all_videos(file, results_dir, gs, main_dict, h, w, lfp)
+    sta_per_video_avg(file, results_dir, gs, main_dict, h, w, lfp)
 
-def save_per_session_results(dir, results_dir, height, width):
+def save_per_session_results(dir, results_dir, height, width, lfp):
     fnames = os.listdir(dir)
     for file in fnames:
         main_dict = pickle.load(open(os.path.join(dir,file),'rb'))
-        visualisation_of_results(file, results_dir, main_dict, height, width)
+        visualisation_of_results(file, results_dir, main_dict, height, width, lfp)
 
 def main(run_sta=True, run_stc=True, main_dict_exists = True, debug =False):
+    import argparse
+    parser = argparse.ArgumentParser(description="")
+
+    parser.add_argument('--delay', '-d',
+            type=str,
+            help="""directory where the weigths are stored""")
+    parser.add_argument('--result_dir', '-rd',
+                type=str,
+                help="""directory where the weigths are stored""")
+    args = parser.parse_args()
+    delay = int(args.delay)
+    result_dir = args.result_dir
     h = 14
     w = 25
     PER_SESSION_DATA_EXISTS = True
     PER_SESSION_RESULTS_EXISTS = False
+    lfp = True
     '''
     go though spikes of all neurons followed by lfps of all neurons
     '''
@@ -305,17 +334,17 @@ def main(run_sta=True, run_stc=True, main_dict_exists = True, debug =False):
     if(debug):
             results_dir = "/home/siddharth/Desktop/debug"
     else:
-        results_dir = "/media/data_cifs/sid/monkey/spike_lfp_all/results_cont_spk_values_100"
+        results_dir = result_dir
     if(PER_SESSION_DATA_EXISTS):
         pass
     else:
         dates = ['180716','180719','180724','180728','180730']
         for date in dates:
-            per_session_device_data_to_pickle(date, h, w)
+            per_session_device_data_to_pickle(date, h, w, delay, lfp)
     if(PER_SESSION_RESULTS_EXISTS):
         pass
     else:
-        save_per_session_results(per_session_dir, results_dir, h, w)
+        save_per_session_results(per_session_dir, results_dir, h, w, lfp)
 
 
 
