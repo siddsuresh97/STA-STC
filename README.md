@@ -44,3 +44,12 @@ store_result_in -> the directory where you want to store your per_session data i
 spike_files_dir -> directory where the spike data is stored (same as spk_data_fname from step 3)  
 lfp_files_dir ->  directory where the lfp data is stored (same as lfp_data_fname from step 3)  
 time_fname = pickle file where your time axis is stored      
+
+5) python script_to_run_main_with_various_delay.py  
+
+This can me used to run the main.py with multiple delays. Set the variables in main.py before running this script.  
+
+
+6) python script_to_segregate_results
+
+This is used to put the results into appropriate directories. Run this script after the results have been generated from step 5.
